@@ -48,6 +48,16 @@ jobs:
             note="**Merge conflicts** - this branch is plain upstream; merge it into main locally and resolve the conflicts by hand."
           fi
           git push -f origin "$branch"
+          {
+            echo "${NEW} new upstream commit(s) from ngocjohn/sidebar-organizer. ${note}"
+            echo
+            echo "### After merging"
+            echo "- [ ] Merge this PR"
+            echo "- [ ] Actions > **Fork Release** > Run workflow (on main)"
+            echo "- [ ] HACS > Sidebar Organizer (aardvarkl) > update to the new release"
+            echo "- [ ] Refresh the browser (Ctrl+F5) - no HA restart or configuration.yaml change needed;"
+            echo "      www/sidebar-organizer-loader.js picks up the new hacstag from Dashboard resources"
+          } > pr-body.md
           gh pr create --base main --head "$branch" \
             --title "Sync upstream ngocjohn/sidebar-organizer (${UPSHA})" \
-            --body "${NEW} new upstream commit(s). ${note} After merging, run **Fork Release** to publish a build for HACS."
+            --body-file pr-body.md
