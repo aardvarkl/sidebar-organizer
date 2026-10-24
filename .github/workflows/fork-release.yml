@@ -1,5 +1,9 @@
 # Fork release (aardvarkl/sidebar-organizer)
 # Builds sidebar-organizer.js and publishes a GitHub release that HACS can install.
+# The build is committed to dist/ on a detached commit that only the release tag points
+# at (main stays source-only). It is NOT attached as a release asset: HACS fails to
+# download GitHub release assets ("Got more than 8190 bytes" header error), so HACS
+# installs it from the tagged dist/ folder instead.
 # Tags use the upstream version plus a fork suffix (e.g. v4.2.1-fork.3) so they never
 # clash with upstream tags when syncing. Run manually from the Actions tab.
 name: Fork Release
@@ -34,12 +38,23 @@ jobs:
           n=1
           while git rev-parse -q --verify "refs/tags/v${base}-fork.${n}" >/dev/null; do n=$((n+1)); done
           echo "tag=v${base}-fork.${n}" >> "$GITHUB_OUTPUT"
+      - name: Commit build to the release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --detach
+          mkdir -p dist
+          cp build/sidebar-organizer.js dist/
+          git add -f dist/sidebar-organizer.js
+          git commit -m "build: ${{ steps.ver.outputs.tag }} [skip ci]"
+          git tag "${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}"
       - name: Publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "${{ steps.ver.outputs.tag }}" build/sidebar-organizer.js \
-            --target "$GITHUB_SHA" \
+          gh release create "${{ steps.ver.outputs.tag }}" \
+            --verify-tag \
             --title "${{ steps.ver.outputs.tag }}" \
             --generate-notes \
             --latest
