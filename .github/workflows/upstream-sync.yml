@@ -1,0 +1,53 @@
+# Upstream sync (aardvarkl/sidebar-organizer)
+# Weekly (and on demand) checks ngocjohn/sidebar-organizer main for new commits.
+# If there are any, it merges them into a sync branch and opens a pull request
+# against this fork's main for review. Nothing is merged into main automatically.
+# Needs: Settings > Actions > General > "Allow GitHub Actions to create and approve pull requests".
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/ngocjohn/sidebar-organizer.git
+          git fetch upstream main --tags
+          echo "NEW=$(git rev-list --count main..upstream/main)" >> "$GITHUB_ENV"
+          echo "UPSHA=$(git rev-parse --short upstream/main)" >> "$GITHUB_ENV"
+      - name: Open sync pull request
+        if: env.NEW != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch="sync/upstream-${UPSHA}"
+          if gh pr list --head "$branch" --state open --json number --jq 'length' | grep -qv '^0$'; then
+            echo "Sync PR for ${UPSHA} already open"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          if git merge --no-edit upstream/main; then
+            note="Merged cleanly."
+          else
+            git merge --abort
+            git reset --hard upstream/main
+            note="**Merge conflicts** - this branch is plain upstream; merge it into main locally and resolve the conflicts by hand."
+          fi
+          git push -f origin "$branch"
+          gh pr create --base main --head "$branch" \
+            --title "Sync upstream ngocjohn/sidebar-organizer (${UPSHA})" \
+            --body "${NEW} new upstream commit(s). ${note} After merging, run **Fork Release** to publish a build for HACS."
