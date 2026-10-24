@@ -1,0 +1,45 @@
+# Fork release (aardvarkl/sidebar-organizer)
+# Builds sidebar-organizer.js and publishes a GitHub release that HACS can install.
+# Tags use the upstream version plus a fork suffix (e.g. v4.2.1-fork.3) so they never
+# clash with upstream tags when syncing. Run manually from the Actions tab.
+name: Fork Release
+
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run rollup
+      - name: Work out the fork version
+        id: ver
+        run: |
+          base=$(node -p "require('./package.json').version")
+          n=1
+          while git rev-parse -q --verify "refs/tags/v${base}-fork.${n}" >/dev/null; do n=$((n+1)); done
+          echo "tag=v${base}-fork.${n}" >> "$GITHUB_OUTPUT"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.ver.outputs.tag }}" build/sidebar-organizer.js \
+            --target "$GITHUB_SHA" \
+            --title "${{ steps.ver.outputs.tag }}" \
+            --generate-notes \
+            --latest
