@@ -1,3 +1,10 @@
+> [!WARNING]
+> **Personal fork — not the official plugin.**
+> This is a fork of [ngocjohn/sidebar-organizer](https://github.com/ngocjohn/sidebar-organizer), maintained for my own use. It loads the sidebar faster on page load and uses `www/sidebar-organizer.yaml` automatically when the file exists, so every browser follows the same config. It is kept in sync with upstream.
+> Issues and pull requests are not accepted.
+>
+> ### This fork is AI generated — use at your own peril.
+
 <a name="readme-top"></a>
 
 [![hacs][hacs-default]][hacs-default-link] [![hacs][hacs-validate]][hacs-url] ![Github last commit][git-last-commit-badge] ![git-download-all][git-download-all-badge] ![git-download-latest][git-download-latest-badge] [![forum][forum-badge]][forum-url]
